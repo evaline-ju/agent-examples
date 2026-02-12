@@ -4,20 +4,54 @@ from langchain_core.messages import SystemMessage,  AIMessage
 from langgraph.prebuilt import tools_condition, ToolNode
 from langchain_openai import ChatOpenAI
 import os
+import logging
+from pathlib import Path
+from typing import Any, Dict
 from weather_service.configuration import Configuration
 
+logger = logging.getLogger(__name__)
 config = Configuration()
+
+# Kubernetes service account token path
+TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
 # Extend MessagesState to include a final answer
 class ExtendedMessagesState(MessagesState):
      final_answer: str = ""
 
 def get_mcpclient():
+    """
+    Create an MCP client with optional Kubernetes service account token authentication.
+
+    If TOKEN_PATH exists, reads the token and includes it as x-k8s-sa-token header.
+    """
+    # Check if running in Kubernetes with service account token
+    token_path = Path(TOKEN_PATH)
+    headers: Dict[str, str] = {}
+
+    if token_path.exists():
+        try:
+            token = token_path.read_text().strip()
+            logger.info(f"Found Kubernetes service account token at {TOKEN_PATH}")
+            # Add the token as a custom header
+            headers["x-k8s-sa-token"] = token
+            logger.debug(f"Added x-k8s-sa-token header to MCP client configuration")
+        except Exception as e:
+            logger.warning(f"Failed to read service account token from {TOKEN_PATH}: {e}")
+    else:
+        logger.debug(f"No service account token found at {TOKEN_PATH}, proceeding without authentication")
+
+    server_config: Dict[str, Any] = {
+        "url": os.getenv("MCP_URL", "http://localhost:8000/mcp"),
+        "transport": os.getenv("MCP_TRANSPORT", "streamable_http"),
+    }
+
+    # Add headers if we have any
+    if headers:
+        server_config["headers"] = headers
+
     return MultiServerMCPClient({
-        "math": {
-            "url": os.getenv("MCP_URL", "http://localhost:8000/mcp"),
-            "transport": os.getenv("MCP_TRANSPORT", "streamable_http"),
-        }
+        "math": server_config
     })
 
 async def get_graph(client) -> StateGraph:
