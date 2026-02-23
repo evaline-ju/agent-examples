@@ -13,6 +13,7 @@ from a2a.types import AgentCapabilities, AgentCard, AgentSkill, TaskState, TextP
 from a2a.utils import new_agent_text_message, new_task
 from openinference.instrumentation.langchain import LangChainInstrumentor
 from langchain_core.messages import HumanMessage
+from opentelemetry import trace
 
 from weather_service.graph import get_graph, get_mcpclient
 
@@ -116,7 +117,18 @@ class WeatherExecutor(AgentExecutor):
             # Test MCP connection first
             logger.info(f'Attempting to connect to MCP server at: {os.getenv("MCP_URL", "http://localhost:8000/sse")}')
 
-            mcpclient = get_mcpclient()
+            # Extract current trace context
+            traceparent = None
+            current_span = trace.get_current_span()
+            span_context = current_span.get_span_context()
+
+            # Format traceparent according to W3C Trace Context spec
+            # Format: version-trace_id-span_id-trace_flags
+            if span_context.is_valid:
+                traceparent = f"00-{format(span_context.trace_id, '032x')}-{format(span_context.span_id, '016x')}-{format(span_context.trace_flags, '02x')}"
+                logger.info(f'Propagating trace context: {traceparent}')
+
+            mcpclient = get_mcpclient(traceparent=traceparent)
 
             # Try to get tools to verify connection
             try:
@@ -166,7 +178,7 @@ def run():
         agent_card=agent_card,
         http_handler=request_handler,
     )
-    
+
     # Build the Starlette app
     app = server.build()
 
@@ -179,7 +191,7 @@ def run():
     ))
 
     # Add middleware to log all incoming requests with headers
-    
+
     @app.middleware("http")
     async def log_authorization_header(request, call_next):
         auth_header = request.headers.get("authorization", "No Authorization header")
