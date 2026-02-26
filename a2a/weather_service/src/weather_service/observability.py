@@ -111,13 +111,12 @@ def setup_observability() -> None:
     )
     trace.set_tracer_provider(tracer_provider)
 
-    # Auto-instrument LangChain with OpenInference
-    try:
-        from openinference.instrumentation.langchain import LangChainInstrumentor
-        LangChainInstrumentor().instrument()
-        logger.info("LangChain instrumented with OpenInference")
-    except ImportError:
-        logger.warning("openinference-instrumentation-langchain not available")
+    # NOTE: LangChain OpenInference auto-instrumentation is intentionally disabled.
+    # It creates a parallel span tree (LangGraph node spans) that is disconnected
+    # from the actual HTTP-level spans (MCP tool calls) due to the MCP SDK's anyio
+    # task groups breaking OpenTelemetry context propagation. Instead, graph.py
+    # uses manual spans (gen_ai.chat, gen_ai.tool) that properly parent the httpx
+    # and OpenAI spans.
 
     # Configure W3C Trace Context propagation
     set_global_textmap(CompositePropagator([
