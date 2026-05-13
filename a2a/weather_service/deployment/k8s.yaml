@@ -73,10 +73,10 @@ spec:
           value: http://keycloak.keycloak.svc.cluster.local:8080
         - name: UV_CACHE_DIR
           value: /app/.cache/uv
-        # Make direct call to tool.  
+        # Direct call to tool.
         - name: MCP_URL
           value: http://weather-tool-mcp.team1.svc.cluster.local:8000/mcp
-        # Use this value to make call through MCP Gateway
+        # To route through the MCP Gateway instead, apply gateway.yaml and use:
         #  value: http://mcp-gateway-istio.gateway-system.svc.cluster.local:8080/mcp
         # This is the LLM_API_BASE for ollama running on the host machine. In production, this would point to a real LLM API.
         - name: LLM_API_BASE

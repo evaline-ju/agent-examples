@@ -29,7 +29,7 @@ def get_mcpclient(headers=None):
     }
     if headers:
         mcp_config["headers"] = headers
-    return MultiServerMCPClient({"math": mcp_config})
+    return MultiServerMCPClient({"weather": mcp_config})
 
 
 async def get_graph(client) -> StateGraph:

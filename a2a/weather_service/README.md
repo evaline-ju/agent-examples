@@ -2,7 +2,16 @@
 
 The Weather Service Agent is an example of an [A2A](https://a2a-protocol.org/latest/) agent.
 
-This agent depends on the Kagenti [Weather Tool](https://github.com/kagenti/agent-examples/tree/main/mcp/weather_tool).  The weather tool should be running before chatting with the weather service agent.
+This agent depends on the Kagenti [Weather Tool](https://github.com/kagenti/agent-examples/tree/main/mcp/weather_tool).
+
+This agent connects to the weather tool's MCP server.  By default (via the UI or `.env` files), it connects directly to the tool.
+
+To route through the MCP Gateway instead, apply the gateway registration and update the agent's `MCP_URL`:
+
+```bash
+kubectl apply -f mcp/weather_tool/deployment/gateway.yaml
+# Then set MCP_URL=http://mcp-gateway-istio.gateway-system.svc.cluster.local:8080/mcp on the agent
+```
 
 ## Run the agent on Kubernetes with Kagenti
 

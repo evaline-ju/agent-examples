@@ -22,9 +22,27 @@ uv run --no-sync weather_tool.py
 
 ### Deploy using a Kubernetes deployment descriptor
 
-Alternately, you can deploy a pre-built image using Kubernetes
+Alternately, you can deploy a pre-built image using Kubernetes:
 
-- `kubectl apply -f mcp/weather_tool/deployment/k8s.yaml`
+```bash
+kubectl apply -f mcp/weather_tool/deployment/k8s.yaml
+```
+
+### Register with the MCP Gateway (optional)
+
+To route agent traffic through the MCP Gateway instead of directly to the tool, apply the gateway registration manifest:
+
+```bash
+kubectl apply -f mcp/weather_tool/deployment/gateway.yaml
+```
+
+This creates an `HTTPRoute` and `MCPServerRegistration`.  The gateway controller retries until the tool is reachable, so it can be applied at any time.  Agents that should use the gateway need their `MCP_URL` set to `http://mcp-gateway-istio.gateway-system.svc.cluster.local:8080/mcp`.
+
+Verify the registration:
+
+```bash
+kubectl get mcpserverregistrations weather-tool-servers -n team1
+```
 
 ## Test the MCP server using Kagenti
 
